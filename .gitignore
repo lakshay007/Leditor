@@ -1,0 +1,102 @@
+# Build artifacts - Terminal version
+/build/
+*.o
+leditor
+
+# Build artifacts - GUI version
+/gui/leditor-gui.app/
+/gui/Makefile.qt
+/gui/.qmake.stash
+/gui/moc_*.cpp
+/gui/moc_predefs.h
+*.app
+
+# Qt specific
+*.pro.user
+*.pro.user.*
+*.qws
+
+# Compiler outputs
+*.exe
+*.out
+*.app
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
+
+# macOS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor backups and swap files
+*~
+*.swp
+*.swo
+*#
+.#*
+
+# IDE files
+.vscode/
+.idea/
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Test files (optional)
+test_output.txt
+*.test 

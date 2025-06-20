@@ -1,0 +1,7 @@
+Hello, this is a test file for Leditor!
+This is line 2.
+Here's line 3 with some more text.
+
+Line 5 after an empty line. 
+
+

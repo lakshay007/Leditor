@@ -1,0 +1,14 @@
+#!/bin/bash
+# Leditor GUI Launcher Script
+
+# Get the directory where this script is located
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+# Launch the GUI application
+if [ $# -eq 0 ]; then
+    # No arguments - just open the app
+    open "$DIR/gui/leditor-gui.app"
+else
+    # Pass the first argument as a file to open
+    "$DIR/gui/leditor-gui.app/Contents/MacOS/leditor-gui" "$1"
+fi 
