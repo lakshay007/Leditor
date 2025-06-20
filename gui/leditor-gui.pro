@@ -8,11 +8,15 @@ TEMPLATE = app
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
-    customtextwidget.cpp
+    customtextwidget.cpp \
+    fileexplorer.cpp \
+    editortabs.cpp
 
 HEADERS += \
     mainwindow.h \
-    customtextwidget.h
+    customtextwidget.h \
+    fileexplorer.h \
+    editortabs.h
 
 # macOS specific settings
 macx {

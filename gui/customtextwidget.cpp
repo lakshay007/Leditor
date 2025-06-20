@@ -12,7 +12,8 @@ CustomTextWidget::CustomTextWidget(QWidget *parent)
     , textFont("Monaco", 12)
     , fontMetrics(nullptr)
     , scrollOffsetX(0)
-    , scrollOffsetY(0)
+    , scrollOffsetY(0.0f)
+    , targetScrollY(0.0f)
     , cursorVisible(true)
 {
 
@@ -24,7 +25,11 @@ CustomTextWidget::CustomTextWidget(QWidget *parent)
 
     cursorTimer = new QTimer(this);
     connect(cursorTimer, &QTimer::timeout, this, &CustomTextWidget::blinkCursor);
-    cursorTimer->start(500); 
+    cursorTimer->start(500);
+
+    scrollAnimation = new QPropertyAnimation(this, "scrollOffsetY");
+    scrollAnimation->setDuration(200); 
+    scrollAnimation->setEasingCurve(QEasingCurve::OutQuad); 
 
     setFocusPolicy(Qt::StrongFocus);
     setAttribute(Qt::WA_InputMethodEnabled);
@@ -61,6 +66,9 @@ void CustomTextWidget::loadText(const QString &text)
 
     cursorX = 0;
     cursorY = 0;
+    scrollOffsetY = 0.0f;
+    targetScrollY = 0.0f;
+    scrollOffsetX = 0;
     isDirty = false;
 
     update();
@@ -85,6 +93,9 @@ void CustomTextWidget::clear()
     buffer.push_back("");
     cursorX = 0;
     cursorY = 0;
+    scrollOffsetY = 0.0f;
+    targetScrollY = 0.0f;
+    scrollOffsetX = 0;
     isDirty = false;
     update();
     emitSignals();
@@ -97,11 +108,11 @@ void CustomTextWidget::paintEvent(QPaintEvent *event)
 
     painter.fillRect(rect(), Qt::black);
 
-    int startLine = std::max(0, scrollOffsetY);
-    int endLine = std::min((int)buffer.size(), scrollOffsetY + height() / lineHeight + 1);
+    int startLine = std::max(0, (int)scrollOffsetY);
+    int endLine = std::min((int)buffer.size(), (int)scrollOffsetY + height() / lineHeight + 1);
 
     for (int i = startLine; i < endLine; ++i) {
-        int y = (i - scrollOffsetY) * lineHeight + fontMetrics->ascent() + 5;
+        int y = (int)((i - scrollOffsetY) * lineHeight) + fontMetrics->ascent() + 5;
 
         if (y > height()) break;
 
@@ -117,7 +128,7 @@ void CustomTextWidget::paintEvent(QPaintEvent *event)
             QString lineUpToCursor = QString::fromStdString(buffer[cursorY].substr(0, cursorX));
             cursorScreenX += fontMetrics->horizontalAdvance(lineUpToCursor);
         }
-        int cursorScreenY = (cursorY - scrollOffsetY) * lineHeight + 5;
+        int cursorScreenY = (int)((cursorY - scrollOffsetY) * lineHeight) + 5;
 
         if (cursorScreenX >= 0 && cursorScreenX < width() && 
             cursorScreenY >= 0 && cursorScreenY < height()) {
@@ -175,7 +186,7 @@ void CustomTextWidget::mousePressEvent(QMouseEvent *event)
     if (event->button() == Qt::LeftButton) {
 
         int clickX = event->pos().x() + scrollOffsetX - 5;
-        int clickY = (event->pos().y() + scrollOffsetY * lineHeight - 5) / lineHeight;
+        int clickY = (int)((event->pos().y() + scrollOffsetY * lineHeight - 5) / lineHeight);
 
         cursorY = std::max(0, std::min(clickY, (int)buffer.size() - 1));
 
@@ -210,6 +221,38 @@ void CustomTextWidget::mousePressEvent(QMouseEvent *event)
         emitSignals();
     }
     setFocus();
+}
+
+void CustomTextWidget::wheelEvent(QWheelEvent *event)
+{
+    if (!event->pixelDelta().isNull()) {
+
+        int deltaY = event->pixelDelta().y();
+
+        if (deltaY != 0) {
+
+            float linesDelta = -(float)deltaY / (lineHeight * 0.3f); 
+            float targetY = scrollOffsetY + linesDelta;
+
+            float maxScrollY = std::max(0.0f, (float)buffer.size() - (float)height() / lineHeight);
+            float newScrollY = std::max(0.0f, std::min(targetY, maxScrollY));
+
+            setScrollOffsetY(newScrollY);
+        }
+    } else if (!event->angleDelta().isNull()) {
+
+        int deltaY = event->angleDelta().y();
+
+        if (deltaY != 0) {
+
+            float linesDelta = -(deltaY > 0 ? 2.5f : -2.5f); 
+            float targetY = scrollOffsetY + linesDelta;
+
+            smoothScrollTo(targetY);
+        }
+    }
+
+    event->accept();
 }
 
 void CustomTextWidget::focusInEvent(QFocusEvent *event)
@@ -317,7 +360,6 @@ void CustomTextWidget::ensureCursorVisible()
         QString lineUpToCursor = QString::fromStdString(buffer[cursorY].substr(0, cursorX));
         cursorScreenX = fontMetrics->horizontalAdvance(lineUpToCursor);
     }
-    int cursorScreenY = cursorY * lineHeight;
 
     if (cursorScreenX < scrollOffsetX) {
         scrollOffsetX = cursorScreenX;
@@ -325,11 +367,52 @@ void CustomTextWidget::ensureCursorVisible()
         scrollOffsetX = cursorScreenX - width() + 50;
     }
 
-    if (cursorScreenY < scrollOffsetY * lineHeight) {
-        scrollOffsetY = cursorScreenY / lineHeight;
-    } else if (cursorScreenY >= (scrollOffsetY * lineHeight) + height() - lineHeight) {
-        scrollOffsetY = (cursorScreenY - height() + lineHeight) / lineHeight + 1;
+    float cursorScreenY = cursorY;
+    float viewportLines = (float)height() / lineHeight;
+
+    float targetScrollY = scrollOffsetY;
+    bool needsScroll = false;
+
+    if (cursorScreenY < scrollOffsetY) {
+
+        targetScrollY = cursorScreenY;
+        needsScroll = true;
+    } else if (cursorScreenY >= scrollOffsetY + viewportLines - 1) {
+
+        targetScrollY = cursorScreenY - viewportLines + 1;
+        needsScroll = true;
     }
+
+    if (needsScroll) {
+        smoothScrollTo(targetScrollY);
+    }
+}
+
+void CustomTextWidget::setScrollOffsetY(float offset)
+{
+    scrollOffsetY = offset;
+    update(); 
+}
+
+void CustomTextWidget::smoothScrollTo(float targetY)
+{
+
+    float maxScrollY = std::max(0.0f, (float)buffer.size() - (float)height() / lineHeight);
+    targetY = std::max(0.0f, std::min(targetY, maxScrollY));
+
+    if (qAbs(targetY - scrollOffsetY) < 0.1f) {
+
+        setScrollOffsetY(targetY);
+        return;
+    }
+
+    scrollAnimation->stop();
+
+    scrollAnimation->setStartValue(scrollOffsetY);
+    scrollAnimation->setEndValue(targetY);
+    scrollAnimation->start();
+
+    targetScrollY = targetY;
 }
 
 void CustomTextWidget::emitSignals()

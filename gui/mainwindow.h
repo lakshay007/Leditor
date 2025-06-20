@@ -14,7 +14,10 @@
 #include <QTextStream>
 #include <QDir>
 #include <QOverload>
+#include <QSplitter>
 #include "customtextwidget.h"
+#include "fileexplorer.h"
+#include "editortabs.h"
 
 class MainWindow : public QMainWindow
 {
@@ -32,36 +35,46 @@ protected:
 private slots:
     void newFile();
     void openFile();
+    void openWorkspace();
     bool saveFile();
     bool saveAsFile();
     void about();
-    void documentWasModified();
+    void toggleSidebar();
+    void onFileSelected(const QString &filePath);
+    void onActiveFileChanged(const QString &filePath);
+    void onEditorFocusChanged(CustomTextWidget *editor);
     void updateStatusBar();
 
 private:
+    void setupUI();
     void createMenus();
     void createStatusBar();
     void readSettings();
     void writeSettings();
     bool maybeSave();
-    void loadFile(const QString &fileName);
-    bool saveFileAs(const QString &fileName);
-    void setCurrentFile(const QString &fileName);
     QString strippedName(const QString &fullFileName);
 
-    CustomTextWidget *textEdit;
+    // UI Components
+    QSplitter *mainSplitter;
+    FileExplorer *fileExplorer;
+    EditorTabs *editorTabs;
     
-    QString currentFile;
+    // Status bar
     QLabel *statusLabel;
     QLabel *positionLabel;
+    
+    // Current state
+    QString currentWorkspace;
     
     // Actions
     QAction *newAct;
     QAction *openAct;
+    QAction *openWorkspaceAct;
     QAction *saveAct;
     QAction *saveAsAct;
     QAction *exitAct;
     QAction *aboutAct;
+    QAction *toggleSidebarAct;
 };
 
 #endif // MAINWINDOW_H 
