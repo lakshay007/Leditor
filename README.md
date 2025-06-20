@@ -85,16 +85,25 @@ make gui              # Build GUI version
 
 ## Architecture
 
-### Terminal Version
-- **editor.h/cpp** - Main editor class handling ncurses UI and logic
-- **main.cpp** - Entry point
-- Uses `std::vector<std::string>` for text storage
 
-### GUI Version
-- **mainwindow.h/cpp** - Main window with menus, file operations, status bar
-- **texteditor.h/cpp** - Custom QTextEdit widget with cursor tracking
+### Core Text Engine (Shared)
+- **`std::vector<std::string>` buffer** - One string per line (same in both versions)
+- **Custom editing functions**: `insertChar()`, `deleteChar()`, `insertNewline()`
+- **Custom cursor logic**: Position tracking, movement, bounds checking
+- **Custom file I/O**: Load/save operations
+
+### Terminal Version
+- **editor.h/cpp** - Main editor class with ncurses UI
+- **main.cpp** - Entry point
+- **ncurses** - Used only for terminal display and keyboard input
+- **Custom logic** - All text editing behavior implemented from scratch
+
+### GUI Version  
+- **mainwindow.h/cpp** - Window management, menus, file operations, status bar
+- **customtextwidget.h/cpp** - Custom widget that renders text using the shared buffer
 - **main.cpp** - Qt application entry point
-- Uses Qt's built-in text document model
+- **Qt** - Used only for GUI framework (windows, mouse, painting canvas)
+- **Custom logic** - Same text editing behavior as terminal version
 
 ## Next Steps
 
